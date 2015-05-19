@@ -56,7 +56,7 @@ eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool v
                                                                                                             otherwise -> return (Error ("IF-EXP " ++ show ifexp ++" with wrong Structure"))
                                                                                                            }
                                                                                             })
-
+eval env (List (Atom "comment":end)) = return$ List []
 -- The following line is slightly more complex because we are addressing the
 -- case where define is redefined by the user (whatever is the user's reason
 -- for doing so. The problem is that redefining define does not have
