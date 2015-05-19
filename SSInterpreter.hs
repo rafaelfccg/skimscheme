@@ -49,6 +49,14 @@ eval env (List (Atom "begin":[v])) = eval env v
 eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (error@(Error _)) -> return error; otherwise -> eval env (List (Atom "begin": ls))})
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
+eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
+                                                                                             otherwise -> case elsi of
+                                                                                                          { [] -> (return (List []));
+                                                                                                            (ok:[]) -> (eval env  ok);
+                                                                                                            otherwise -> return (Error ("IF-EXP " ++ show ifexp ++" with wrong Structure"))
+                                                                                                           }
+                                                                                            })
+
 -- The following line is slightly more complex because we are addressing the
 -- case where define is redefined by the user (whatever is the user's reason
 -- for doing so. The problem is that redefining define does not have
@@ -56,7 +64,7 @@ eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 -- stored as a regular function because of its return type.
 eval env (List (Atom "define": args)) = maybe (define env args) (\v -> return v) (Map.lookup "define" env)
 eval env (List (Atom func : args)) = mapM (eval env) args >>= apply env func 
-eval env (Error s)  = return (Error s)
+eval env (Error s)  = return (Error s)	
 eval env form = return (Error ("Could not eval the special form: " ++ (show form)))
 
 stateLookup :: StateT -> String -> StateTransformer LispVal
