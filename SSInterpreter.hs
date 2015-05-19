@@ -134,7 +134,8 @@ environment =
           $ insert "car"            (Native car)           
           $ insert "cdr"            (Native cdr) 
           $ insert "/"				(Native integerDiv)
-          $ insert "mod"			(Native integerMod)          
+          $ insert "mod"			(Native integerMod)
+          $ insert "lt?"			(Native lessThan)
             empty
 
 type StateT = Map String LispVal
@@ -204,6 +205,10 @@ integerMod :: [LispVal] -> LispVal
 integerMod [] = Number 1
 integerMod l = numericBinOp (mod) l
 
+lessThan :: [LispVal] -> LispVal
+lessThan [] = (Bool False)
+lessThan ((Number a1):(Number a2):[]) = Bool$(a1<a2)
+
 
 numericSub :: [LispVal] -> LispVal
 numericSub [] = Error "wrong number of arguments."
@@ -220,7 +225,7 @@ numericBinOp :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinOp op args = if onlyNumbers args 
                        then Number $ foldl1 op $ Prelude.map unpackNum args 
                        else Error "not a number."
-                       
+
 onlyNumbers :: [LispVal] -> Bool
 onlyNumbers [] = True
 onlyNumbers (Number n:ns) = onlyNumbers ns
