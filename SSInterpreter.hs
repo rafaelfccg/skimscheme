@@ -136,6 +136,7 @@ environment =
           $ insert "/"				(Native integerDiv)
           $ insert "mod"			(Native integerMod)
           $ insert "lt?"			(Native lessThan)
+          $ insert "eqv?"			(Native equivalence)
             empty
 
 type StateT = Map String LispVal
@@ -209,6 +210,25 @@ lessThan :: [LispVal] -> LispVal
 lessThan [] = (Bool False)
 lessThan ((Number a1):(Number a2):[]) = Bool$(a1<a2)
 lessThan  k  = Error ("Error on Lt? Strutcture : "++show k)
+
+equivalence:: [LispVal] -> LispVal
+equivalence []  = (Bool False)
+equivalence ((Bool a1):(Bool a2):[]) = Bool$(a1==a2)
+equivalence ((Number a1):(Number a2):[]) = Bool$(a1==a2)
+equivalence ((String a1):(String a2):[]) = Bool$(a1==a2)
+equivalence ((Atom a1):(Atom a2):[]) = Bool$(a1==a2)
+equivalence ((List []):(List []):[]) = Bool$True
+equivalence ((List _):(List []):[]) = Bool$False
+equivalence ((List []):(List _):[]) = Bool$False
+equivalence ((List (a1:s1)):(List (a2:s2)):[]) = let (Bool b) = (equivalence [a1,a2]);
+                                                     (Bool b1) = (equivalence [List s1, List s2]);
+                                                 in Bool$ (b  && b1 )
+equivalence ((DottedList a1 v1):(DottedList a2 v2):[]) = let (Bool b) = (equivalence [v1,v2]);
+                                                             (Bool b1) = (equivalence [List a1, List a2]);
+                                                         in  Bool$ (b && b1)
+                                            
+equivalence _  = Error "Differente types being compared at eqv?"
+
 
 
 numericSub :: [LispVal] -> LispVal
