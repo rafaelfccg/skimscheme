@@ -208,6 +208,7 @@ integerMod l = numericBinOp (mod) l
 lessThan :: [LispVal] -> LispVal
 lessThan [] = (Bool False)
 lessThan ((Number a1):(Number a2):[]) = Bool$(a1<a2)
+lessThan  k  = Error ("Error on Lt? Strutcture : "++show k)
 
 
 numericSub :: [LispVal] -> LispVal
