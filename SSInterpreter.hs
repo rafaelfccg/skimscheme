@@ -49,6 +49,8 @@ eval env (List (Atom "begin":[v])) = eval env v
 eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (error@(Error _)) -> return error; otherwise -> eval env (List (Atom "begin": ls))})
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
+eval env (List (Atom "set!": args)) = (setS env args)
+
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
                                                                                              otherwise -> case elsi of
                                                                                                           { [] -> (return (List []));
@@ -81,11 +83,22 @@ stateLookup env var = ST $
 -- complicate state management. The same principle applies to set!. We are still
 -- not talking about local definitions. That's a completely different
 -- beast.
+
+setS :: StateT -> [LispVal] -> StateTransformer LispVal
+setS env [(Atom id), val]  = stateLookup env id >>= \s -> case s of 
+	                                                           Error s-> return $ (Error (id++" "++s))
+	                                                           otherwise -> (defineVar env id val)
+setS env [(List [Atom id]), val] = stateLookup env id >>= \s -> case s of 
+	                                                           Error s-> return $ (Error (id++" "++s))
+	                                                           otherwise -> (defineVar env id val)                                    
+setS env args = return (Error "wrong number of arguments on SET!")
+
+
 define :: StateT -> [LispVal] -> StateTransformer LispVal
 define env [(Atom id), val] = defineVar env id val
 define env [(List [Atom id]), val] = defineVar env id val
 -- define env [(List l), val]                                       
-define env args = return (Error "wrong number of arguments")
+define env args = return (Error "wrong number of arguments on DEFINE")
 defineVar env id val = 
   ST (\s -> let (ST f)    = eval env val
                 (result, newState) = f s
@@ -227,7 +240,7 @@ equivalence ((DottedList a1 v1):(DottedList a2 v2):[]) = let (Bool b) = (equival
                                                              (Bool b1) = (equivalence [List a1, List a2]);
                                                          in  Bool$ (b && b1)
                                             
-equivalence _  = Error "Differente types being compared at eqv?"
+equivalence k  = Error ("Differente types being compared at eqv?" ++ show k)
 
 
 
