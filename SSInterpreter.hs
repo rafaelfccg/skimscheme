@@ -50,7 +50,11 @@ eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (err
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
-eval env (List (Atom "let":(List list):exp)) = eval (getEnvFromList env env list ) (List (Atom "begin": exp))--return $ Error (show list)
+eval env (List (Atom "let":(List list):exp)) = let nenv = (getEnvFromList env env list );
+                                                   (ST letS) = ST (\v->(Number 0,(union nenv env)))>>= (eval env (List (Atom "begin": exp)))
+                                               in ST (\s -> let (v, newS) = letS s
+                                                                          = (difference nenv )
+                                                            in  (v,) )
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
                                                                                              otherwise -> case elsi of
                                                                                                           { [] -> (return (List []));
