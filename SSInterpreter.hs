@@ -51,10 +51,11 @@ eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
 eval env (List (Atom "let":(List list):exp)) = let nenv = (getEnvFromList env env list );
-                                                   (ST letS) = ST (\v->(Number 0,(union nenv env)))>>= (eval env (List (Atom "begin": exp)))
+                                                   (ST letS) = ST (\v->(Number 0,(union nenv env)))>>= (\k->(eval env (List (Atom "begin": exp))))
                                                in ST (\s -> let (v, newS) = letS s
-                                                                          = (difference nenv )
-                                                            in  (v,) )
+                                                                (aux)     = (union nenv s)
+                                                                finalenv  = (union (difference aux nenv) s)
+                                                            in  (v,finalenv) )
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
                                                                                              otherwise -> case elsi of
                                                                                                           { [] -> (return (List []));
@@ -76,8 +77,8 @@ eval env form = return (Error ("Could not eval the special form: " ++ (show form
 stateLookup :: StateT -> String -> StateTransformer LispVal
 stateLookup env var = ST $ 
   (\s -> 
-    (maybe (Error "variable does not exist.") 
-           id (Map.lookup var (union env s) 
+    (maybe (Error $ "variable"++show var ++" does not exist.") 
+           id (Map.lookup var (union s env) 
     ), s))
 
 getEnvFromList:: StateT->StateT->[LispVal]->StateT
