@@ -50,7 +50,7 @@ eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (err
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
-
+eval env (List (Atom "let":(List list):exp)) = eval (getEnvFromList env list ) (List (Atom "begin": exp))--return $ Error (show list)
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
                                                                                              otherwise -> case elsi of
                                                                                                           { [] -> (return (List []));
@@ -73,10 +73,12 @@ stateLookup :: StateT -> String -> StateTransformer LispVal
 stateLookup env var = ST $ 
   (\s -> 
     (maybe (Error "variable does not exist.") 
-           id (Map.lookup var (union s env) 
+           id (Map.lookup var (union env s) 
     ), s))
 
-
+getEnvFromList:: StateT->[LispVal]->StateT
+getEnvFromList env ((List (((Atom var):val:[]))):[]) = (insert var val env)
+getEnvFromList env ((List (((Atom var):val:[]))):ls) = getEnvFromList (insert var val env) ls
 -- Because of monad complications, define is a separate function that is not
 -- included in the state of the program. This saves  us from having to make
 -- every predefined function return a StateTransformer, which would also
@@ -118,7 +120,7 @@ apply env func args =
                         (stateLookup env func >>= \res -> 
                           case res of 
                             List (Atom "lambda" : List formals : body:l) -> lambda env formals body args                              
-                            otherwise -> return (Error "not a function.")
+                            otherwise -> return (Error (show func ++"not a function."))
                         )
  
 -- The lambda function is an auxiliary function responsible for
