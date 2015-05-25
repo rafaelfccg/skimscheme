@@ -51,7 +51,7 @@ eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
 eval env (List (Atom "let":(List list):exp)) = let nenv = (getEnvFromList env env list );
-                                                   (ST letS) = ST (\v->(Number 0,(union nenv env)))>>= (\k->(eval env (List (Atom "begin": exp))))
+                                                   (ST letS) = ST (\v->(Number 0,(union nenv v)))>>= (\k->(eval env (List (Atom "begin": exp))))
                                                in ST (\s -> let (v, newS) = letS s
                                                                 (aux)     = (union nenv s)
                                                                 finalenv  = (union (difference aux nenv) s)
