@@ -50,7 +50,7 @@ eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (err
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
-eval env (List (Atom "let":(List list):exp)) = eval (getEnvFromList env list ) (List (Atom "begin": exp))--return $ Error (show list)
+eval env (List (Atom "let":(List list):exp)) = eval (getEnvFromList env env list ) (List (Atom "begin": exp))--return $ Error (show list)
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
                                                                                              otherwise -> case elsi of
                                                                                                           { [] -> (return (List []));
@@ -76,9 +76,9 @@ stateLookup env var = ST $
            id (Map.lookup var (union env s) 
     ), s))
 
-getEnvFromList:: StateT->[LispVal]->StateT
-getEnvFromList env ((List (((Atom var):val:[]))):[]) = (insert var val env)
-getEnvFromList env ((List (((Atom var):val:[]))):ls) = getEnvFromList (insert var val env) ls
+getEnvFromList:: StateT->StateT->[LispVal]->StateT
+getEnvFromList env0 env ((List (((Atom var):val:[]))):[]) = let (v, _) = getResult $(eval env0 (List (Atom "begin": val:[])) ) in (insert var v env)
+getEnvFromList env0 env ((List (((Atom var):val:[]))):ls) = let (v, _) = getResult $(eval env0 (List (Atom "begin": val:[])) ) in getEnvFromList env0 (insert var v env) ls
 -- Because of monad complications, define is a separate function that is not
 -- included in the state of the program. This saves  us from having to make
 -- every predefined function return a StateTransformer, which would also
@@ -119,7 +119,7 @@ apply env func args =
                       otherwise -> 
                         (stateLookup env func >>= \res -> 
                           case res of 
-                            List (Atom "lambda" : List formals : body:l) -> lambda (insert func res env) formals body args                              
+                            List (Atom "lambda" : List formals : body:l) -> lambda env formals body args                              
                             otherwise -> return (Error (show func ++"not a function."))
                         )
  
@@ -260,7 +260,7 @@ numericSub l = numericBinOp (-) l
 numericBinOp :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinOp op args = if onlyNumbers args 
                        then Number $ foldl1 op $ Prelude.map unpackNum args 
-                       else Error "not a number."
+                       else Error ("not a number."++show args)
 
 onlyNumbers :: [LispVal] -> Bool
 onlyNumbers [] = True
