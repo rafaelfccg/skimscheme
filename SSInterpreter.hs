@@ -50,11 +50,12 @@ eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (err
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
-eval env (List (Atom "let":(List list):exp)) = let nenv = (getEnvFromList env env list );
-                                                   (ST letS) = eval (union nenv env) (List (Atom "begin": exp))
-                                               in ST (\s -> let (v, newS) = letS s
-                                                                finalenv  = (union (difference newS nenv) s)
-                                                            in  (v,finalenv) )
+eval env (List (Atom "let":(List list):exp)) =  ST (\s -> let atual = (union s env)
+                                                              nenv = (getEnvFromList atual atual list );
+                                                              (ST letS) = eval nenv (List (Atom "begin": exp))
+                                                              (v, newS) = letS s
+                                                              finalenv  = (union (difference newS nenv) s)
+                                                          in  (v,finalenv) )
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\val-> case val of { (Bool True) -> (eval env theni);
                                                                                              (Bool False)-> case elsi of { [] -> (return (List []));
                                                                                                                            (ok:[]) -> (eval env  ok);
@@ -77,7 +78,7 @@ stateLookup :: StateT -> String -> StateTransformer LispVal
 stateLookup env var = ST $ 
   (\s -> 
     (maybe (Error $ "variable"++show var ++" does not exist.") 
-           id (Map.lookup var (union s env) 
+           id (Map.lookup var (union env s) 
     ), s))
 
 getEnvFromList:: StateT->StateT->[LispVal]->StateT
