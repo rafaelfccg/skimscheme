@@ -55,12 +55,12 @@ eval env (List (Atom "let":(List list):exp)) = let nenv = (getEnvFromList env en
                                                in ST (\s -> let (v, newS) = letS s
                                                                 finalenv  = (union (difference newS nenv) s)
                                                             in  (v,finalenv) )
-eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\(Bool val)-> case val of {True -> (eval env theni);
-                                                                                             otherwise -> case elsi of
-                                                                                                          { [] -> (return (List []));
-                                                                                                            (ok:[]) -> (eval env  ok);
-                                                                                                            otherwise -> return (Error ("IF-EXP " ++ show ifexp ++" with wrong Structure"))
-                                                                                                           }
+eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\val-> case val of { (Bool True) -> (eval env theni);
+                                                                                             (Bool False)-> case elsi of { [] -> (return (List []));
+                                                                                                                           (ok:[]) -> (eval env  ok);
+                                                                                                                           otherwise -> return (Error ("IF-EXP 1 " ++ show ifexp ++" with wrong Structure"));
+                                                                                                                          };                  
+                                                                                              otherwise -> return (Error ("IF-EXP 2 " ++show val++ "->"++ show ifexp ++" with wrong Structure"));
                                                                                             })
 eval env (List (Atom "comment":end)) = return$ List []
 -- The following line is slightly more complex because we are addressing the
@@ -137,6 +137,7 @@ lambda env formals body args =
   in  eval dynEnv body
 
 
+
 -- Initial environment of the programs. Maps identifiers to values. 
 -- Initially, maps function names to function values, but there's 
 -- nothing stopping it from storing general values (e.g., well-known
@@ -156,6 +157,8 @@ environment =
           $ insert "mod"			(Native integerMod)
           $ insert "lt?"			(Native lessThan)
           $ insert "eqv?"			(Native equivalence)
+          $ insert "append"   (Native appendScheme)
+          $ insert "cons"     (Native consSheme)
             empty
 
 type StateT = Map String LispVal
@@ -193,6 +196,15 @@ cdr (List (a:as) : ls) = List as
 cdr (DottedList (a:[]) c : ls) = c
 cdr (DottedList (a:as) c : ls) = DottedList as c
 cdr ls = Error "invalid list."
+
+consSheme :: [LispVal] -> LispVal
+consSheme (a:(List l):[]) = List (a:l)
+consSheme (a:(DottedList a2 v):[]) = DottedList (a:a2) v
+consSheme ls = Error "invalid list."
+
+appendScheme :: [LispVal] -> LispVal
+appendScheme ((List k):(List k2):[]) = List (k++k2)
+appendScheme ls = Error ("invalid list.\n"++ show ls)
 
 predNumber :: [LispVal] -> LispVal
 predNumber (Number _ : []) = Bool True
