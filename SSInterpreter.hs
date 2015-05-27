@@ -51,10 +51,10 @@ eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env (List (Atom "set!": args)) = (setS env args)
 eval env (List (Atom "let":(List list):exp)) =  ST (\s -> let atual = (union s env)
-                                                              nenv = (getEnvFromList atual atual list );
+                                                              nenv = (getEnvFromList atual env list)
                                                               (ST letS) = eval nenv (List (Atom "begin": exp))
                                                               (v, newS) = letS s
-                                                              finalenv  = (union (difference newS nenv) s)
+                                                              finalenv  = (union (difference newS nenv) atual)
                                                           in  (v,finalenv) )
 eval env ifexp@(List (Atom "if":cond:theni:elsi)) = (eval env cond) >>=(\val-> case val of { (Bool True) -> (eval env theni);
                                                                                              (Bool False)-> case elsi of { [] -> (return (List []));
@@ -84,6 +84,7 @@ stateLookup env var = ST $
 getEnvFromList:: StateT->StateT->[LispVal]->StateT
 getEnvFromList env0 env ((List (((Atom var):val:[]))):[]) = let (v, _) = getResult $(eval env0 (List (Atom "begin": val:[])) ) in (insert var v env)
 getEnvFromList env0 env ((List (((Atom var):val:[]))):ls) = let (v, _) = getResult $(eval env0 (List (Atom "begin": val:[])) ) in getEnvFromList env0 (insert var v env) ls
+
 -- Because of monad complications, define is a separate function that is not
 -- included in the state of the program. This saves  us from having to make
 -- every predefined function return a StateTransformer, which would also
