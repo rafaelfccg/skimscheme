@@ -71,8 +71,14 @@ eval env (List (Atom "comment":end)) = return$ List []
 -- stored as a regular function because of its return type.
 eval env (List (Atom "make-closure":exp:[]))  = return (MClosure exp env)
 eval env (List (Atom "define": args)) = maybe (define env args) (\v -> return v) (Map.lookup "define" env)
-eval env (List (Atom func : args)) = mapM (eval env) args >>= apply env func 
-eval env (Error s)  = return (Error s)	
+eval env (List (Atom func : args)) = mapM (eval env) args >>= apply env func
+eval env (List (List exp : args)) = ST$(\s ->let (ST local) = eval env (List exp)
+                                                 (v,newS)   = local s
+                                                 (ST mapMi) = mapM (eval env) args>>=apply2 env v
+                                                 (v2,newS2) = mapMi newS
+                                             in  (v2,newS2)) 
+   
+eval env (Error s)  = return (Error s)  
 eval env form = return (Error ("Could not eval the special form: " ++ (show form)))
 
 stateLookup :: StateT -> String -> StateTransformer LispVal
@@ -96,11 +102,11 @@ getEnvFromList _ env _  = env
 
 setS :: StateT -> [LispVal] -> StateTransformer LispVal
 setS env [(Atom id), val]  = stateLookup env id >>= \s -> case s of 
-	                                                           Error s-> return $ (Error (id++" "++s))
-	                                                           otherwise -> (defineVar env id val)
+                                                             Error s-> return $ (Error (id++" "++s))
+                                                             otherwise -> (defineVar env id val)
 setS env [(List [Atom id]), val] = stateLookup env id >>= \s -> case s of 
-	                                                           Error s-> return $ (Error (id++" "++s))
-	                                                           otherwise -> (defineVar env id val)                                    
+                                                             Error s-> return $ (Error (id++" "++s))
+                                                             otherwise -> (defineVar env id val)                                    
 setS env args = return (Error "wrong number of arguments on SET!")
 
 
@@ -128,12 +134,22 @@ apply env func args =
                       otherwise -> 
                         (stateLookup env func >>= \res -> case res of 
                                                                  (List (Atom "lambda" : List formals : body:[])) ->lambda env formals body args                             
-                                                                 (MClosure lam@(List (Atom "lambda":(List vars):body:[]) ) nenv) -> let (ST mk) =lambda (union nenv env) vars body args
-                                                                                                                                in  ST $ (\s->let (v,newS) = mk s
-                                                                                                                                              in  (v,(insert func (MClosure lam (difference newS s)) s) ))
+                                                                 (MClosure lam@(List (Atom "lambda":(List vars):body:[]) ) nenv) -> let 
+                                                                                                                                    in  ST $ (\s->let (ST mk) =lambda2 (union nenv env) vars body args
+                                                                                                                                                      (v,newS) = mk s
+                                                                                                                                                  in  (v,(insert func (MClosure lam (difference newS s)) s) ))
                                                                  otherwise -> return (Error (show func ++"not a function."))
                        )
  
+apply2 :: StateT -> LispVal -> [LispVal] -> StateTransformer LispVal
+apply2 env (Native f) args =  return (f args)
+apply2 env (List (Atom "lambda" : List formals : body:[])) args = lambda env formals body args
+apply2 env (MClosure lam@(List (Atom "lambda":(List vars):body:[]) ) nenv) args = let (ST mk) =lambda (union nenv env) vars body args
+                                                                                  in  ST $ (\s->let (v,newS) = mk s
+                                                                                                in  (v,newS))
+apply2 env a _ = return $ Error $ (show a) ++" not a fucntion "                                                                                                
+                   
+
 -- The lambda function is an auxiliary function responsible for
 -- applying user-defined functions, instead of native ones. We use a very stupid 
 -- kind of dynamic variable (parameter) scoping that does not even support
@@ -141,8 +157,16 @@ apply env func args =
 lambda :: StateT -> [LispVal] -> LispVal -> [LispVal] -> StateTransformer LispVal
 lambda env formals body args = 
   let dynEnv = Prelude.foldr (\(Atom f, a) m -> Map.insert f a m) env (zip formals args)
-  in  eval dynEnv body
-
+  in  ST$ \s -> let (ST lambdaS)  =(eval dynEnv body)
+                    (v,newS) = lambdaS (union dynEnv s)
+                    final = (union (difference newS dynEnv) s)
+                in (v,final)
+lambda2 :: StateT -> [LispVal] -> LispVal -> [LispVal] -> StateTransformer LispVal
+lambda2 env formals body args = 
+  let dynEnv = Prelude.foldr (\(Atom f, a) m -> Map.insert f a m) env (zip formals args)
+  in  ST$ \s -> let (ST lambdaS)  =(eval dynEnv body)
+                    (v,newS) = lambdaS (union dynEnv s)
+                in (v,newS)
 
 
 -- Initial environment of the programs. Maps identifiers to values. 
@@ -160,10 +184,10 @@ environment =
           $ insert "-"              (Native numericSub) 
           $ insert "car"            (Native car)           
           $ insert "cdr"            (Native cdr) 
-          $ insert "/"				(Native integerDiv)
-          $ insert "mod"			(Native integerMod)
-          $ insert "lt?"			(Native lessThan)
-          $ insert "eqv?"			(Native equivalence)
+          $ insert "/"        (Native integerDiv)
+          $ insert "mod"      (Native integerMod)
+          $ insert "lt?"      (Native lessThan)
+          $ insert "eqv?"     (Native equivalence)
           $ insert "append"   (Native appendScheme)
           $ insert "cons"     (Native consSheme)
             empty
