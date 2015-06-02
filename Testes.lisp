@@ -39,6 +39,23 @@
 "(begin (define x 5) (define y 10) (define res -1) (let ((x 8)) (begin (set! res 10) (let ((z 5) (y 21)) (begin (set! x 3) (set! y 12) ) ) (set! y x) ) ) (define lista (cons x (cons y (cons res '())))))"
 
 
+(begin
+  (let ((i 1))
+    (define f 
+      (make-closure 
+        (lambda (y) 
+          (begin (set! i (+ i y)) i) 
+        )
+      )
+    )
+  )
+  (define val1 (f 1))
+  (define val2 (f 2))
+  (+ val1 val2) 
+)
+"(begin (let ((i 1)) (define f (make-closure (lambda (y) (begin (set! i (+ i y)) i) )))) (define val1 (f 1)) (define val2 (f 2)) (+ val1 val2))"
+
+"(begin (let ((i 1)) (define f (make-closure (lambda (y) (begin (set! i (+ i y)) i) )))) f)"
 
 (begin 
 	(define partition (lambda (compare l1) 

@@ -69,6 +69,7 @@ eval env (List (Atom "comment":end)) = return$ List []
 -- for doing so. The problem is that redefining define does not have
 -- the same semantics as redefining other functions, since define is not
 -- stored as a regular function because of its return type.
+eval env (List (Atom "make-closure":exp:[]))  = return (MClosure exp env)
 eval env (List (Atom "define": args)) = maybe (define env args) (\v -> return v) (Map.lookup "define" env)
 eval env (List (Atom func : args)) = mapM (eval env) args >>= apply env func 
 eval env (Error s)  = return (Error s)	
@@ -78,13 +79,14 @@ stateLookup :: StateT -> String -> StateTransformer LispVal
 stateLookup env var = ST $ 
   (\s -> 
     (maybe (Error $ "variable"++show var ++" does not exist.") 
-           id (Map.lookup var (union env s) 
+           id (Map.lookup var (union s env) 
     ), s))
 
 getEnvFromList:: StateT->StateT->[LispVal]->StateT
+getEnvFromList env0 env [] = env
 getEnvFromList env0 env ((List (((Atom var):val:[]))):[]) = let (v, _) = getResult $(eval env0 (List (Atom "begin": val:[])) ) in (insert var v env)
 getEnvFromList env0 env ((List (((Atom var):val:[]))):ls) = let (v, _) = getResult $(eval env0 (List (Atom "begin": val:[])) ) in getEnvFromList env0 (insert var v env) ls
-
+getEnvFromList _ env _  = env
 -- Because of monad complications, define is a separate function that is not
 -- included in the state of the program. This saves  us from having to make
 -- every predefined function return a StateTransformer, which would also
@@ -105,6 +107,7 @@ setS env args = return (Error "wrong number of arguments on SET!")
 define :: StateT -> [LispVal] -> StateTransformer LispVal
 define env [(Atom id), val] = defineVar env id val
 define env [(List [Atom id]), val] = defineVar env id val
+define env [(List (Atom id:args)), body] = defineVar env id (List (Atom "lambda":(List args):body:[]))
 -- define env [(List l), val]                                       
 define env args = return (Error "wrong number of arguments on DEFINE")
 defineVar env id val = 
@@ -123,11 +126,13 @@ apply env func args =
                   case (Map.lookup func env) of
                       Just (Native f)  -> return (f args)
                       otherwise -> 
-                        (stateLookup env func >>= \res -> 
-                          case res of 
-                            List (Atom "lambda" : List formals : body:l) -> lambda env formals body args                              
-                            otherwise -> return (Error (show func ++"not a function."))
-                        )
+                        (stateLookup env func >>= \res -> case res of 
+                                                                 (List (Atom "lambda" : List formals : body:[])) ->lambda env formals body args                             
+                                                                 (MClosure lam@(List (Atom "lambda":(List vars):body:[]) ) nenv) -> let (ST mk) =lambda (union nenv env) vars body args
+                                                                                                                                in  ST $ (\s->let (v,newS) = mk s
+                                                                                                                                              in  (v,(insert func (MClosure lam (difference newS s)) s) ))
+                                                                 otherwise -> return (Error (show func ++"not a function."))
+                       )
  
 -- The lambda function is an auxiliary function responsible for
 -- applying user-defined functions, instead of native ones. We use a very stupid 
