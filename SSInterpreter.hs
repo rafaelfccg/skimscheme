@@ -128,18 +128,18 @@ defineVar env id val =
 -- applies its second argument f to x and yields (f x) as its result.
 -- maybe :: b -> (a -> b) -> Maybe a -> b
 apply :: StateT -> String -> [LispVal] -> StateTransformer LispVal
-apply env func args =  
-                  case (Map.lookup func env) of
-                      Just (Native f)  -> return (f args)
-                      otherwise -> 
-                        (stateLookup env func >>= \res -> case res of 
-                                                                 (List (Atom "lambda" : List formals : body:[])) ->lambda env formals body args                             
-                                                                 (MClosure lam@(List (Atom "lambda":(List vars):body:[]) ) nenv) -> let 
-                                                                                                                                    in  ST $ (\s->let (ST mk) =lambda2 (union nenv env) vars body args
-                                                                                                                                                      (v,newS) = mk s
-                                                                                                                                                  in  (v,(insert func (MClosure lam (difference newS s)) s) ))
-                                                                 otherwise -> return (Error (show func ++"not a function."))
-                       )
+apply env func args =
+  case (Map.lookup func env) of
+    Just (Native f)  -> return (f args)
+    otherwise -> (stateLookup env func >>= \res -> case res of 
+                                                        (List (Atom "lambda" : List formals : body:[])) ->lambda env formals body args                             
+                                                        (MClosure lam@(List (Atom "lambda":(List vars):body:[]) ) nenv) -> ST $ (\s -> let (ST mk) =lambda2 (union nenv env) vars body args
+                                                                                                                                           (v,newS) = mk s
+                                                                                                                                           cl = (union newS (difference s nenv))
+                                                                                                                                           final = (union (difference newS nenv) s )
+                                                                                                                                       in  (v,(insert func (MClosure lam cl) final) ))
+                                                        otherwise -> return (Error (show func ++"not a function."))
+                  )
  
 apply2 :: StateT -> LispVal -> [LispVal] -> StateTransformer LispVal
 apply2 env (Native f) args =  return (f args)
@@ -166,6 +166,7 @@ lambda2 env formals body args =
   let dynEnv = Prelude.foldr (\(Atom f, a) m -> Map.insert f a m) env (zip formals args)
   in  ST$ \s -> let (ST lambdaS)  =(eval dynEnv body)
                     (v,newS) = lambdaS (union dynEnv s)
+                    final = (union newS (difference s dynEnv) )
                 in (v,newS)
 
 
