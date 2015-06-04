@@ -1,2 +1,18 @@
 "(begin (define h 5) (set! h 10) h)"
 
+-- just a comment
+"(begin (comment this is just a comment))"
+
+-- Comment and some accounts
+-- 1
+"(begin (comment this is a comment) (mod 13 12))"
+
+
+--Equação  ((3 + 8) - 7) * (mod 5((5 - 1)/2)) = 4
+-- *, +, -, /, mod
+"(begin (* (- (+ 3 8) 7) (mod 5 (/ (- 5 1) 2)))"
+
+-- Comentario no meio da equação
+-- resultado = 4
+"(begin (* (- (+ 3 8) 7) (comment só pra testar se a equação tem o resultado correto) (mod 5 (/ (- 5 1) 2)))"
+
