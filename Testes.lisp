@@ -77,3 +77,38 @@
 
 (if (eqv? '() (quote ())))
 "(begin (define partition (lambda (compare l1) (if (eqv? l1 '()) '() (if (compare (car l1)) (cons (car l1) (partition compare (cdr l1))) (partition compare (cdr l1)))))) (define quicksort (lambda (l1) (if (eqv? l1 '()) '() (let ((pivot (car l1))) (append (append (quicksort (partition (lambda (x) ( lt? x pivot)) l1)) (partition (lambda (x) ( eqv? x pivot)) l1)) (quicksort (partition (lambda (x) ( lt? pivot x)) l1))))))) (quicksort '(9 8 7 6 5 4 3 2 1)))"
+
+(begin
+	(define sum 
+		(lambda (n)
+			(if (eqv? n 0) 0
+			(+ n sum(- n 1))
+			)
+		)
+	)
+	(define x 10)
+	(let (f 5)
+		(set! x 20)
+		(* x f)
+	)
+	(let (f 20)
+		(set! x 200)
+		(/ x f)
+	)
+	(lt? (sum x) 1000)
+)
+"(begin (define sum (lambda (n) (if (eqv? n 0) 0 (+ n sum(- n 1))))) (define x 10) (let (f 5) (set! x 20) (* x f)) (let (f 20) (set! x 200) (/ x f)) (lt? sum(x) 1000))"
+
+(begin
+	(define sumList
+		(lambda (ls)
+			(if (eqv? car(ls) '()) 0
+			(+ car(ls) sumList(cdr(ls)))
+			)
+		)
+	)
+	(define f (cons 5 (2 3 4)))
+	(lt? sumList(f) 14)
+)
+"(begin (define sumList (lambda (ls) (if (eqv? car(ls) '()) 0 (+ car(ls) sumList(cdr(ls)))))) (define f (cons 5 (2 3 4))) (lt? sumList(f) 14))"
+
