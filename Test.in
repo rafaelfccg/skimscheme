@@ -16,3 +16,13 @@
 -- resultado = 4
 "(begin (* (- (+ 3 8) 7) (comment só pra testar se a equação tem o resultado correto) (mod 5 (/ (- 5 1) 2)))"
 
+-- Set!, Let
+"(begin (let x 99) (* x 10) (set! x 3))"
+
+-- Cons
+"(begin (let (a 3) (b 2)) (cons a (1, 5, 9, 10)))"
+
+-- it?
+-- #t
+"(begin (let ((a 2) (b 3) (c 4))) (set a 8) (lt? (mod a c) (/ 3 b)))"
+
