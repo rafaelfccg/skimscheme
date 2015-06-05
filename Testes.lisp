@@ -112,3 +112,49 @@
 )
 "(begin (define sumList (lambda (ls) (if (eqv? car(ls) '()) 0 (+ car(ls) sumList(cdr(ls)))))) (define f (cons 5 (2 3 4))) (lt? sumList(f) 14))"
 
+(begin 
+	(comment this is just a comment)
+)
+"(begin (comment this is just a comment))"
+
+(begin
+	(comment this is a comment)
+	(mod 13 12)
+)
+"(begin (comment this is a comment) (mod 13 12))"
+
+(begin
+	(* (- (+ 3 8) 7) (mod 5 (/ (- 5 1) 2)))
+)
+"(begin (* (- (+ 3 8) 7) (mod 5 (/ (- 5 1) 2)))"
+
+(begin
+	(* (- (+ 3 8) 7) (comment só pra testar se a equação tem o resultado correto) (mod 5 (/ (- 5 1) 2)))
+)
+"(begin (* (- (+ 3 8) 7) (comment só pra testar se a equação tem o resultado correto) (mod 5 (/ (- 5 1) 2)))"
+
+(begin
+	(let x 99)
+	(* x 10)
+	(set! x 3)
+)
+"(begin (let x 99) (* x 10) (set! x 3))"
+
+(begin 
+	(let (a 3) (b 2))
+	(cons a (1, 5, 9, 10))
+)
+"(begin (let (a 3) (b 2)) (cons a (1, 5, 9, 10)))"
+
+(begin
+	(let ((a 2) (b 3) (c 4))) (set a 8) (lt? (mod a c) (/ 3 b))
+)
+"(begin (let ((a 2) (b 3) (c 4))) (set a 8) (lt? (mod a c) (/ 3 b)))"
+
+(begin
+	(let a 2)
+	(if (eqv? (mod 11 3) (/ 4 a)) (set! a (+ a 1)))
+)
+"(begin (let a 2) (if (eqv? (mod 11 3) (/ 4 a)) (set! a (+ a 1))))"
+
+
