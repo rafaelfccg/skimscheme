@@ -26,3 +26,10 @@
 -- #t
 "(begin (let ((a 2) (b 3) (c 4))) (set a 8) (lt? (mod a c) (/ 3 b)))"
 
+-- eqv?
+"(begin (let a 2) (if (eqv? (mod 11 3) (/ 4 a)) (set! a (+ a 1))))"
+
+-- recursão
+
+
+
